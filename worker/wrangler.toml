@@ -1,0 +1,8 @@
+name = "locked-canvas-relay"
+main = "worker.js"
+compatibility_date = "2026-11-10"
+
+[vars]
+ALLOWED_HOSTS = "umiami.instructure.com"
+ALLOWED_ORIGINS = "https://andrewtaplin.github.io"
+ALLOW_LOCALHOST = "false"

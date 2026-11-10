@@ -1,0 +1,27 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Locked//Canvas Feed Test//EN
+CALSCALE:GREGORIAN
+BEGIN:VEVENT
+UID:feed-psych-quiz@umiami
+DTSTART;TZID=America/New_York:20261120T170000
+DTEND;TZID=America/New_York:20261120T180000
+SUMMARY:PSY 110 Quiz 3
+DESCRIPTION:Chapter 5 review
+URL:https://umiami.instructure.com/courses/110/assignments/11
+END:VEVENT
+BEGIN:VEVENT
+UID:feed-mkt-exam@umiami
+DTSTART;TZID=America/New_York:20261201T110000
+SUMMARY:MKT 201 Midterm examination
+DESCRIPTION:Bring a calculator
+URL:https://umiami.instructure.com/courses/201/assignments/22
+END:VEVENT
+BEGIN:VEVENT
+UID:feed-sta-future@umiami
+DTSTART;TZID=America/New_York:20261215T170000
+SUMMARY:STA 202 Future lab
+DESCRIPTION:Lab session
+URL:https://umiami.instructure.com/courses/202/assignments/33
+END:VEVENT
+END:VCALENDAR

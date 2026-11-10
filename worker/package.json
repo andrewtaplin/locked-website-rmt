@@ -1,0 +1,13 @@
+{
+  "name": "locked-canvas-relay",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node url-validator.test.js",
+    "dev": "node dev-server.js",
+    "dry-run": "wrangler deploy --dry-run"
+  },
+  "devDependencies": {
+    "wrangler": "^4.45.3"
+  }
+}

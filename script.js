@@ -5,6 +5,8 @@ const LOCKED_CONFIG = {
     midPilot: "",
     endOfPilot: "",
   },
+  // Set this to the Cloudflare Worker origin after Drew deploys locked-canvas-relay.
+  canvasRelayUrl: "",
 };
 
 const STORE_VERSION = 2;
@@ -17,6 +19,7 @@ const KEYS = {
   issues: STORE_PREFIX + "issues",
   uids: STORE_PREFIX + "uids",
   seeded: STORE_PREFIX + "seeded",
+  feed: STORE_PREFIX + "canvas-feed",
 };
 
 const LEGACY_KEYS = {
@@ -126,6 +129,9 @@ function normalizeItem(raw, index) {
     steps: Array.isArray(raw.steps) ? raw.steps.map(String) : [],
     source: raw.source || "Manual",
     completed: Boolean(raw.completed || raw.done),
+    url: raw.url || "",
+    fromCanvasFeed: Boolean(raw.fromCanvasFeed),
+    removed: Boolean(raw.removed),
   };
 }
 
@@ -257,6 +263,73 @@ function getIssues() {
   } catch {
     return [];
   }
+}
+
+function getRelayUrl() {
+  const override = typeof window !== "undefined" ? window.__LOCKED_RELAY_OVERRIDE : "";
+  return String(override || LOCKED_CONFIG.canvasRelayUrl || "").replace(/\/+$/, "");
+}
+
+function getFeedState() {
+  try {
+    const value = loadRaw(KEYS.feed);
+    if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+    return value;
+  } catch {
+    return {};
+  }
+}
+
+function setFeedState(next) {
+  save(KEYS.feed, next && next.url ? next : {});
+  if (!next || !next.url) rawRemove(KEYS.feed);
+}
+
+function activeItems(list) {
+  return (list || getItems()).filter((item) => item && !item.removed);
+}
+
+function canvasLink(item) {
+  if (!item || item.source !== "Canvas" || !item.url) return "";
+  return `<a class="canvas-open" href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer">Open in Canvas</a>`;
+}
+
+function inferFeedType(title) {
+  const text = String(title || "");
+  if (/\b(exam|midterm|final)\b/i.test(text)) return "Exam";
+  if (/\bquiz\b/i.test(text)) return "Quiz";
+  if (/\b(assignment|homework|essay|response)\b/i.test(text)) return "Assignment";
+  return "Event";
+}
+
+function validateCanvasFeedUrl(rawUrl) {
+  const relay = getRelayUrl();
+  let parsed;
+  try {
+    parsed = new URL(String(rawUrl || "").trim());
+  } catch {
+    return { ok: false, error: "Paste a full Canvas calendar feed link." };
+  }
+  const host = parsed.hostname.toLowerCase();
+  const localRelay = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(relay);
+  const localHost = host === "localhost" || host === "127.0.0.1";
+  if (parsed.protocol === "https:") {
+    if (host !== "umiami.instructure.com" && !(localRelay && localHost)) {
+      return { ok: false, error: "The link must be from umiami.instructure.com." };
+    }
+  } else if (parsed.protocol === "http:" && localRelay && localHost) {
+    /* local development */
+  } else {
+    return { ok: false, error: "The feed link must start with https://." };
+  }
+  if (parsed.username || parsed.password) {
+    return { ok: false, error: "That link does not look like a Canvas calendar feed." };
+  }
+  const path = parsed.pathname || "";
+  if (!path.startsWith("/feeds/calendars/") || !path.toLowerCase().endsWith(".ics") || path.length <= "/feeds/calendars/".length + 4) {
+    return { ok: false, error: "Use the Canvas Calendar Feed link that ends in .ics." };
+  }
+  return { ok: true, url: parsed.toString() };
 }
 
 function pad(n) {
@@ -541,6 +614,7 @@ function showDemo(view) {
   demoPage.hidden = false;
   setView(view || currentView || "today", true);
   window.scrollTo(0, 0);
+  startFeedAutoSync();
 }
 
 function setView(name, pushHash) {
@@ -611,7 +685,7 @@ function addTaskButton(label) {
 }
 
 function renderToday() {
-  const items = getItems();
+  const items = activeItems();
   const upcoming = items
     .filter((item) => !item.completed)
     .sort((a, b) => (parseLocal(a.due) || 0) - (parseLocal(b.due) || 0));
@@ -625,7 +699,7 @@ function renderToday() {
     ? `<p class="start-kicker">✦ Start here</p>
        <h2>${escapeHtml(next.title)}</h2>
        <p>${escapeHtml(next.course || "Personal")} · ${escapeHtml(fmtTime(next.due) || "No time")} · ${escapeHtml(String(next.minutes || ""))}${next.minutes ? " min" : ""}</p>
-       <button class="btn-black" type="button" data-open-item data-item-id="${next.id}">Open task</button>`
+       <div class="item-actions"><button class="btn-black" type="button" data-open-item data-item-id="${next.id}">Open task</button>${canvasLink(next)}</div>`
     : `<p class="start-kicker">✦ Start here</p>
        <h2>You're all caught up.</h2>
        <p>Add something when you're ready.</p>
@@ -633,7 +707,7 @@ function renderToday() {
   const coming = upcoming.length
     ? `<div class="upcoming-list">${upcoming.map((item) => `
         <div class="upcoming-row">
-          <div><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.course || "")} · ${escapeHtml(item.type)}</small></div>
+          <div><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.course || "")} · ${escapeHtml(item.type)}</small>${canvasLink(item)}</div>
           <div>${escapeHtml(fmtDay(item.due))}<br>${escapeHtml(fmtTime(item.due))}</div>
         </div>`).join("")}</div>`
     : `<div class="empty-state">
@@ -684,7 +758,7 @@ function renderToday() {
 }
 
 function renderCalendar() {
-  const items = getItems();
+  const items = activeItems();
   const { y, m } = calendarCursor;
   const label = new Date(y, m, 1).toLocaleDateString("en-US", { month: "long", year: "numeric" });
   const first = new Date(y, m, 1);
@@ -727,7 +801,7 @@ function renderCalendar() {
     ? `<div class="agenda-list">${agendaItems.map((item) => `
         <div class="agenda-row">
           <div>${escapeHtml(fmtDay(item.due))}<br>${escapeHtml(fmtTime(item.due))}</div>
-          <div><strong>${escapeHtml(item.title)}</strong><br>${escapeHtml(item.course || "")}</div>
+          <div><strong>${escapeHtml(item.title)}</strong><br>${escapeHtml(item.course || "")}${canvasLink(item)}</div>
           <div class="task-meta"><span class="badge badge-${(item.source || "manual").toLowerCase()}">${escapeHtml((item.source || "Manual").toUpperCase())}</span><span class="type-pill">${escapeHtml(item.type)}</span></div>
         </div>`).join("")}</div>`
     : `<div class="empty-state"><strong>No items this month</strong><p>Add an event to see it here.</p></div>`;
@@ -764,7 +838,7 @@ function renderCalendar() {
 
 function renderTasks() {
   const q = taskQuery.trim().toLowerCase();
-  const items = getItems()
+  const items = activeItems()
     .filter((item) => {
       if (taskFilter === "Open" && item.completed) return false;
       if (taskFilter === "Completed" && !item.completed) return false;
@@ -779,6 +853,7 @@ function renderTasks() {
         <div>
           <span class="task-title">${escapeHtml(item.title)}</span>
           <span class="task-course">${escapeHtml(item.course || "")}</span>
+          ${canvasLink(item)}
         </div>
         <div class="task-meta">
           <span class="badge badge-${(item.source || "manual").toLowerCase()}">${escapeHtml((item.source || "Manual").toUpperCase())}</span>
@@ -939,6 +1014,7 @@ function renderIntegrations() {
         </div>
       </div>
     </article>
+    ${renderCanvasFeedCard()}
     <article class="int-card">
       <p class="app-eyebrow">Owner setup checklist</p>
       <h2>Secure Canvas OAuth requirements</h2>
@@ -1151,15 +1227,8 @@ function parseIcsDate(params, value) {
     return { local: toLocalInput(dt), allDay: false };
   }
   if (tzid) {
-    try {
-      const iso = `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6] || "00"}`;
-      const asUtc = new Date(iso + "Z");
-      const inTz = new Date(asUtc.toLocaleString("en-US", { timeZone: tzid[1].trim() }));
-      const offset = asUtc.getTime() - inTz.getTime();
-      return { local: toLocalInput(new Date(asUtc.getTime() + offset)), allDay: false };
-    } catch {
-      return { local: `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}`, allDay: false };
-    }
+    // Keep the feed's wall-clock time (Canvas shows 5:00 PM as 5:00 PM).
+    return { local: `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}`, allDay: false };
   }
   return { local: `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}`, allDay: false };
 }
@@ -1228,6 +1297,7 @@ function addSelectedIcs() {
       steps: [],
       source: "Canvas",
       completed: false,
+      url: ev.url || "",
     });
     if (ev.uid) known.push(ev.uid);
   });
@@ -1235,6 +1305,197 @@ function addSelectedIcs() {
   setItems(items);
   pendingIcs = [];
   renderApp();
+}
+
+function renderCanvasFeedCard() {
+  const relay = getRelayUrl();
+  const state = getFeedState();
+  const connected = Boolean(state.url);
+  const feedCount = activeItems().filter((item) => item.fromCanvasFeed).length;
+  let body;
+  if (!relay) {
+    body = `<p class="muted-note">Live sync is being set up — use .ics upload meanwhile</p>
+      <label class="feed-label" for="canvas-feed-url">Canvas calendar feed link</label>
+      <input class="feed-input" id="canvas-feed-url" type="url" placeholder="https://umiami.instructure.com/feeds/calendars/…" disabled>
+      <button class="btn btn--forest" type="button" id="canvas-feed-connect" disabled>Connect</button>`;
+  } else if (connected) {
+    const when = state.lastSynced ? new Date(state.lastSynced).toLocaleString() : "not yet";
+    const err = state.lastError ? `<p class="feed-error">${escapeHtml(state.lastError)}</p>` : "";
+    const pending = feedSyncInFlight ? `<p class="muted-note">Syncing…</p>` : "";
+    body = `<div class="feed-status">
+        <p><strong>Connected to your Canvas calendar feed</strong></p>
+        <p>Last synced ${escapeHtml(when)}</p>
+        <p>${feedCount} item${feedCount === 1 ? "" : "s"} in Locked from this feed.</p>
+        ${pending}${err}
+        <div class="feed-actions">
+          <button class="btn btn--forest" type="button" id="canvas-feed-sync" ${feedSyncInFlight ? "disabled" : ""}>Sync now</button>
+          <button class="btn btn--outline" type="button" id="canvas-feed-disconnect">Disconnect</button>
+        </div>
+      </div>`;
+  } else {
+    body = `<label class="feed-label" for="canvas-feed-url">Paste your Canvas calendar feed link</label>
+      <input class="feed-input" id="canvas-feed-url" type="url" placeholder="https://umiami.instructure.com/feeds/calendars/…">
+      <p class="feed-hint" id="canvas-feed-hint" hidden></p>
+      <button class="btn btn--forest" type="button" id="canvas-feed-connect">Connect</button>`;
+  }
+  return `
+    <article class="int-card">
+      <div class="int-top">
+        <div class="int-tile">↻</div>
+        <div style="flex:1">
+          <span class="badge badge-now">AVAILABLE NOW</span>
+          <h2>Connect your Canvas calendar feed</h2>
+          <p>Locked can keep Canvas dates up to date from the private calendar feed link in Canvas. The link stays on this device.</p>
+          <ol class="feed-steps">
+            <li>In Canvas, open <strong>Calendar</strong></li>
+            <li>Click <strong>Calendar Feed</strong></li>
+            <li>Copy the feed link and paste it below</li>
+          </ol>
+          ${body}
+          <p class="privacy-note">Your feed link is private (it acts like a password). Locked stores it only in this browser and sends it only to the Locked relay to fetch your calendar.</p>
+        </div>
+      </div>
+    </article>`;
+}
+
+const FEED_SYNC_MS = 30 * 60 * 1000;
+let feedSyncTimer = null;
+let feedSyncInFlight = false;
+
+function upsertCanvasFeedItems(events) {
+  const incoming = new Map();
+  (events || []).forEach((ev) => {
+    if (ev && ev.uid) incoming.set(String(ev.uid), ev);
+  });
+  const now = new Date();
+  const items = getItems();
+  const known = getUids();
+  const next = items.map((item) => {
+    if (!item.fromCanvasFeed || !item.uid) return item;
+    const ev = incoming.get(String(item.uid));
+    if (ev) {
+      incoming.delete(String(item.uid));
+      return Object.assign({}, item, {
+        title: ev.title || item.title,
+        course: ev.course || item.course,
+        type: inferFeedType(ev.title) || item.type,
+        due: ev.due || item.due,
+        url: ev.url || item.url || "",
+        source: "Canvas",
+        fromCanvasFeed: true,
+        removed: false,
+      });
+    }
+    const due = parseLocal(item.due);
+    if (due && due.getTime() > now.getTime()) {
+      return Object.assign({}, item, { removed: true, fromCanvasFeed: true });
+    }
+    return item;
+  });
+  incoming.forEach((ev) => {
+    next.push({
+      id: uid(),
+      uid: ev.uid,
+      title: ev.title,
+      course: ev.course,
+      type: inferFeedType(ev.title),
+      due: ev.due,
+      plannedStart: "",
+      priority: "Medium",
+      minutes: 30,
+      notes: ev.notes || "",
+      steps: [],
+      source: "Canvas",
+      completed: false,
+      url: ev.url || "",
+      fromCanvasFeed: true,
+      removed: false,
+    });
+    if (ev.uid && !known.includes(ev.uid)) known.push(ev.uid);
+  });
+  save(KEYS.uids, known);
+  setItems(next);
+  return activeItems(next).filter((item) => item.fromCanvasFeed).length;
+}
+
+async function syncCanvasFeed(options = {}) {
+  const silent = Boolean(options.silent);
+  const state = getFeedState();
+  const relay = getRelayUrl();
+  if (!state.url || !relay || feedSyncInFlight) return null;
+  feedSyncInFlight = true;
+  if (!silent && currentView === "integrations" && !demoPage.hidden) renderApp();
+  try {
+    const refresh = silent ? "" : "&refresh=1";
+    const response = await fetch(relay + "/feed?url=" + encodeURIComponent(state.url) + refresh, { cache: "no-store" });
+    if (!response.ok) {
+      let message = "Sync failed. Try again in a moment.";
+      try {
+        const body = await response.json();
+        if (body && body.error) message = body.error;
+      } catch {
+        /* keep default */
+      }
+      throw new Error(message);
+    }
+    const text = await response.text();
+    const events = parseICS(text);
+    const count = upsertCanvasFeedItems(events);
+    setFeedState({
+      url: state.url,
+      lastSynced: new Date().toISOString(),
+      lastCount: count,
+      lastError: "",
+    });
+    return count;
+  } catch (err) {
+    setFeedState(Object.assign({}, state, {
+      lastError: err && err.message ? err.message : "Sync failed.",
+    }));
+    if (!silent) console.error("Locked Canvas feed sync failed", err);
+    return null;
+  } finally {
+    feedSyncInFlight = false;
+    if (!demoPage.hidden) renderApp();
+  }
+}
+
+async function connectCanvasFeed() {
+  if (!getRelayUrl()) return;
+  const input = document.getElementById("canvas-feed-url");
+  const value = input ? input.value.trim() : "";
+  const check = validateCanvasFeedUrl(value);
+  const hint = document.getElementById("canvas-feed-hint");
+  if (!check.ok) {
+    if (hint) {
+      hint.hidden = false;
+      hint.textContent = check.error;
+    } else {
+      window.alert(check.error);
+    }
+    return;
+  }
+  setFeedState({ url: check.url, lastSynced: "", lastCount: 0, lastError: "" });
+  await syncCanvasFeed();
+}
+
+function disconnectCanvasFeed() {
+  setFeedState({});
+  renderApp();
+}
+
+function maybeAutoSync() {
+  const state = getFeedState();
+  if (!state.url || !getRelayUrl()) return;
+  const last = state.lastSynced ? Date.parse(state.lastSynced) : 0;
+  if (!last || Number.isNaN(last) || Date.now() - last >= FEED_SYNC_MS) {
+    syncCanvasFeed({ silent: true });
+  }
+}
+
+function startFeedAutoSync() {
+  maybeAutoSync();
+  if (!feedSyncTimer) feedSyncTimer = setInterval(maybeAutoSync, FEED_SYNC_MS);
 }
 
 function routeFromHash() {
@@ -1380,6 +1641,18 @@ document.addEventListener("click", (event) => {
     document.getElementById("ics-file").click();
     return;
   }
+  if (event.target.closest("#canvas-feed-connect")) {
+    connectCanvasFeed();
+    return;
+  }
+  if (event.target.closest("#canvas-feed-sync")) {
+    syncCanvasFeed();
+    return;
+  }
+  if (event.target.closest("#canvas-feed-disconnect")) {
+    disconnectCanvasFeed();
+    return;
+  }
   if (event.target.closest("#ics-add")) {
     addSelectedIcs();
     return;
@@ -1428,6 +1701,19 @@ document.getElementById("item-title").addEventListener("input", syncSaveEnabled)
 document.addEventListener("input", (event) => {
   if (event.target.id === "task-search") {
     taskQuery = event.target.value;
+  }
+  if (event.target.id === "canvas-feed-url") {
+    const hint = document.getElementById("canvas-feed-hint");
+    const value = event.target.value.trim();
+    if (!hint) return;
+    if (!value) {
+      hint.hidden = true;
+      hint.textContent = "";
+      return;
+    }
+    const check = validateCanvasFeedUrl(value);
+    hint.hidden = check.ok;
+    hint.textContent = check.ok ? "" : check.error;
   }
 });
 
