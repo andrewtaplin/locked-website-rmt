@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Locked — Plan • Focus • Achieve</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400;1,9..40,700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="assets/logo-icon.svg" type="image/svg+xml">
+</head>
+<body>
+  <div class="page" id="page-home">
+    <header class="nav">
+      <a class="brand" href="#home" data-nav="home" aria-label="Locked home">
+        <span class="brand-mark brand-mark--dark">
+          <img src="assets/logo-icon.svg" width="18" height="18" alt="">
+        </span>
+        <span class="brand-text">
+          <span class="brand-name">Locked</span>
+          <span class="brand-tagline">Plan • Focus • Achieve</span>
+        </span>
+      </a>
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="main-nav" aria-label="Open menu">
+        <span></span><span></span><span></span>
+      </button>
+      <nav class="nav-links" id="main-nav" aria-label="Main navigation">
+        <a href="#home" data-nav="home">Home</a>
+        <a href="#features" data-nav="features">Features</a>
+        <a href="#how-it-works" data-nav="how-it-works">How It Works</a>
+        <a href="#about" data-nav="about">About the Project</a>
+        <button class="text-btn" type="button" data-open-demo>Try Demo</button>
+        <button class="btn btn--forest" type="button" data-open-canvas>
+          <img src="assets/canvas-icon.svg" width="16" height="16" alt="">
+          Continue with Canvas
+        </button>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero" id="home">
+        <div class="hero-blob hero-blob--blue" aria-hidden="true"></div>
+        <div class="hero-blob hero-blob--green" aria-hidden="true"></div>
+
+        <div class="hero-copy">
+          <p class="eyebrow">Made for Miami students</p>
+          <h1>
+            <span class="h1-navy">All your deadlines.</span>
+            <span class="h1-italic">One calmer plan.</span>
+          </h1>
+          <p class="hero-lead">Locked brings Canvas deadlines, syllabi, and personal tasks into one daily plan—so you can stop searching and start with confidence.</p>
+          <div class="hero-actions">
+            <button class="btn btn--forest" type="button" data-open-demo>
+              Try the planner
+              <img src="assets/arrow-icon.svg" width="18" height="18" alt="">
+            </button>
+            <a class="text-link" href="#how-it-works">See how it works</a>
+          </div>
+          <div class="pending">
+            <div class="pending-title">
+              <img src="assets/pending-icon.svg" width="16" height="16" alt="">
+              <strong>Canvas setup pending</strong>
+            </div>
+            <p>Use a calendar import or demo while campus approval is in progress.</p>
+          </div>
+        </div>
+
+        <div class="plan-preview" aria-label="Preview of today's Locked plan">
+          <div class="plan-preview-sage" aria-hidden="true"></div>
+          <article class="plan-card">
+            <div class="plan-card-inner">
+              <div class="plan-card-top">
+                <p class="plan-kicker">Today</p>
+                <p class="plan-date">Nov 10</p>
+              </div>
+              <h2 class="plan-title">Let’s make today feel lighter.</h2>
+              <p class="plan-start">Start here</p>
+              <ul class="plan-tasks">
+                <li>
+                  <label>
+                    <input type="checkbox">
+                    <span class="check"></span>
+                    <span>
+                      <strong>Draft PSY response</strong>
+                      <small>45 min · due tonight</small>
+                    </span>
+                  </label>
+                </li>
+                <li>
+                  <label>
+                    <input type="checkbox">
+                    <span class="check"></span>
+                    <span>
+                      <strong>Review midterm notes</strong>
+                      <small>30 min · planned for 4:00</small>
+                    </span>
+                  </label>
+                </li>
+              </ul>
+              <p class="plan-break">
+                <img src="assets/break-icon.svg" width="17" height="17" alt="">
+                You have room for a short break at 5:00.
+              </p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="features" id="features">
+        <p class="eyebrow eyebrow--center">A calmer academic rhythm</p>
+        <h2 class="section-title">One place to see it. One plan to start it.</h2>
+        <div class="feature-grid">
+          <article class="feature-card">
+            <div class="feature-icon feature-icon--green">
+              <img src="assets/calendar-icon.svg" width="24" height="24" alt="">
+            </div>
+            <h3>Every deadline, together</h3>
+            <p>See Canvas, syllabus, and personal work on one calendar with clear source labels.</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon feature-icon--blue">
+              <img src="assets/syllabus-icon.svg" width="24" height="24" alt="">
+            </div>
+            <h3>Your syllabus, unlocked</h3>
+            <p>Upload a PDF, review suggested dates, and stay in control before anything is added.</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon feature-icon--peach">
+              <img src="assets/checklist-icon.svg" width="24" height="24" alt="">
+            </div>
+            <h3>A doable next step</h3>
+            <p>Turn big assignments and heavy weeks into an editable daily checklist.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="how" id="how-it-works">
+        <div class="how-copy">
+          <p class="eyebrow eyebrow--how">How it works</p>
+          <h2>From scattered to settled in three steps.</h2>
+        </div>
+        <ol class="how-list">
+          <li>
+            <span class="how-num">01</span>
+            <div>
+              <h3>Bring it together</h3>
+              <p>Connect Canvas, import its calendar, or upload a syllabus.</p>
+            </div>
+          </li>
+          <li>
+            <span class="how-num">02</span>
+            <div>
+              <h3>Review your week</h3>
+              <p>Confirm deadlines and see what makes a day heavy.</p>
+            </div>
+          </li>
+          <li>
+            <span class="how-num">03</span>
+            <div>
+              <h3>Follow one plan</h3>
+              <p>Start with one prioritized, manageable action.</p>
+            </div>
+          </li>
+        </ol>
+      </section>
+
+      <section class="about" id="about">
+        <div class="about-intro">
+          <p class="eyebrow eyebrow--center">About the project</p>
+          <h2 class="section-title">Built to test whether better planning can reduce academic stress.</h2>
+          <p class="about-note">Locked is a student prototype and research pilot—not a finished clinical intervention.</p>
+        </div>
+        <div class="about-panel">
+          <nav class="about-nav" aria-label="Project sections">
+            <button type="button" class="is-active" data-tab="0" aria-pressed="true"><span>01</span> Problem Definition</button>
+            <button type="button" data-tab="1" aria-pressed="false"><span>02</span> Situation Analysis</button>
+            <button type="button" data-tab="2" aria-pressed="false"><span>03</span> Consumer Research</button>
+            <button type="button" data-tab="3" aria-pressed="false"><span>04</span> Segmentation &amp; Target Audience</button>
+            <button type="button" data-tab="4" aria-pressed="false"><span>05</span> Value Proposition</button>
+            <button type="button" data-tab="5" aria-pressed="false"><span>06</span> Marketing Strategy</button>
+            <button type="button" data-tab="6" aria-pressed="false"><span>07</span> Prototype Design</button>
+            <button type="button" data-tab="7" aria-pressed="false"><span>08</span> Measurement Plan</button>
+          </nav>
+          <div class="about-content" id="about-content"></div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <a class="brand brand--footer" href="#home" data-nav="home" aria-label="Locked home">
+        <span class="brand-mark brand-mark--light">
+          <img src="assets/logo-icon-dark.svg" width="18" height="18" alt="">
+        </span>
+        <span class="brand-text">
+          <span class="brand-name">Locked</span>
+          <span class="brand-tagline">Plan • Focus • Achieve</span>
+        </span>
+      </a>
+      <p>A calmer plan for academic life.</p>
+      <button class="btn btn--white" type="button" data-open-demo>Try Demo</button>
+    </footer>
+  </div>
+
+  <div class="page page--demo" id="page-demo" hidden>
+    <header class="nav">
+      <a class="brand" href="#home" data-nav="home" aria-label="Locked home">
+        <span class="brand-mark brand-mark--dark">
+          <img src="assets/logo-icon.svg" width="18" height="18" alt="">
+        </span>
+        <span class="brand-text">
+          <span class="brand-name">Locked</span>
+          <span class="brand-tagline">Plan • Focus • Achieve</span>
+        </span>
+      </a>
+      <button class="btn btn--ghost" type="button" data-close-demo>Back to home</button>
+    </header>
+    <section class="demo">
+      <article class="demo-card">
+        <div class="plan-card-top">
+          <p class="plan-kicker">Today</p>
+          <p class="plan-date">Nov 10</p>
+        </div>
+        <h1 class="plan-title">Let’s make today feel lighter.</h1>
+        <p class="plan-start">Start here</p>
+        <ul class="plan-tasks">
+          <li>
+            <label>
+              <input type="checkbox">
+              <span class="check"></span>
+              <span>
+                <strong>Draft PSY response</strong>
+                <small>45 min · due tonight</small>
+              </span>
+            </label>
+          </li>
+          <li>
+            <label>
+              <input type="checkbox">
+              <span class="check"></span>
+              <span>
+                <strong>Review midterm notes</strong>
+                <small>30 min · planned for 4:00</small>
+              </span>
+            </label>
+          </li>
+        </ul>
+        <p class="plan-break">
+          <img src="assets/break-icon.svg" width="17" height="17" alt="">
+          You have room for a short break at 5:00.
+        </p>
+        <p class="demo-note">This demo uses the “today’s plan” preview from the Locked landing design. No separate planner screens were in the Figma file.</p>
+      </article>
+    </section>
+  </div>
+
+  <div class="modal" id="canvas-modal" hidden>
+    <div class="modal-backdrop" data-close-canvas></div>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="canvas-title">
+      <div class="pending-title">
+        <img src="assets/pending-icon.svg" width="16" height="16" alt="">
+        <strong id="canvas-title">Canvas setup pending</strong>
+      </div>
+      <p>Use a calendar import or demo while campus approval is in progress.</p>
+      <div class="modal-actions">
+        <button class="btn btn--forest" type="button" data-open-demo data-close-canvas>Try the planner</button>
+        <button class="text-link" type="button" data-close-canvas>Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
