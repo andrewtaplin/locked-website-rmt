@@ -1,14 +1,13 @@
 # Locked
 
-A static website rebuilt from the **Locked** Figma prototype: a student planner landing page for Miami students (Canvas deadlines, syllabi, and a calmer daily plan).
+A static website for **Locked**, a student planner prototype for Miami students: Canvas deadlines, syllabi, and a calmer daily plan.
 
-Figma prototype: [Locked](https://www.figma.com/proto/B21PHznMwld5ZEyW2LsXv1/Untitled?node-id=2-3&t=d0NywBDjcpRNaD2P-1)
+- Live site: https://andrewtaplin.github.io/locked-website-rmt/
+- Figma prototype: [Locked](https://www.figma.com/proto/B21PHznMwld5ZEyW2LsXv1/Untitled?node-id=2-3&t=d0NywBDjcpRNaD2P-1)
 
-The site is plain HTML, CSS, and a little vanilla JavaScript. There is no build step.
+The site is plain HTML, CSS, and vanilla JavaScript. There is no build step.
 
 ## Open locally
-
-From this folder, serve the files with any static server, then open the URL in a browser:
 
 ```bash
 python3 -m http.server 8080
@@ -20,8 +19,9 @@ You can also open `index.html` directly in a browser. A local server is more rel
 
 ## What’s in the site
 
-- Landing page: hero, today’s-plan preview, features, how it works, about the project, and footer
+- Landing page: hero, today’s-plan preview, features, how it works, about the project (eight tabs), and footer
 - In-page nav and “See how it works” links
-- About-the-project section tabs
-- **Try Demo** / **Try the planner** opens a simple planner view based on the landing preview card
-- **Continue with Canvas** opens a “Canvas setup pending” dialog
+- **Try Demo**, **Try the planner**, and **Open functional demo** open the planner
+- Planner screens: Today, Calendar (month and agenda), Tasks, Files & Syllabi, Check-in, Integrations (.ics import), Pilot Feedback, and Settings
+- Items, uploads, check-ins, and settings are stored in this browser with `localStorage`
+- **Continue with Canvas** stays pending until campus OAuth is approved; the University of Miami Canvas link is available now

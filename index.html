@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400;1,9..40,700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles-app.css">
   <link rel="icon" href="assets/logo-icon.svg" type="image/svg+xml">
 </head>
 <body>
@@ -202,57 +203,135 @@
     </footer>
   </div>
 
-  <div class="page page--demo" id="page-demo" hidden>
-    <header class="nav">
-      <a class="brand" href="#home" data-nav="home" aria-label="Locked home">
-        <span class="brand-mark brand-mark--dark">
+  <div class="app" id="page-demo" hidden>
+    <aside class="app-sidebar">
+      <a class="app-brand" href="#demo/today" data-view="today">
+        <span class="app-logo" aria-hidden="true">
           <img src="assets/logo-icon.svg" width="18" height="18" alt="">
         </span>
-        <span class="brand-text">
-          <span class="brand-name">Locked</span>
-          <span class="brand-tagline">Plan • Focus • Achieve</span>
+        <span>
+          <span class="app-brand-name">Locked</span>
+          <span class="app-brand-tag">Plan • Focus • Achieve</span>
         </span>
       </a>
-      <button class="btn btn--ghost" type="button" data-close-demo>Back to home</button>
-    </header>
-    <section class="demo">
-      <article class="demo-card">
-        <div class="plan-card-top">
-          <p class="plan-kicker">Today</p>
-          <p class="plan-date">Nov 10</p>
-        </div>
-        <h1 class="plan-title">Let’s make today feel lighter.</h1>
-        <p class="plan-start">Start here</p>
-        <ul class="plan-tasks">
-          <li>
-            <label>
-              <input type="checkbox">
-              <span class="check"></span>
-              <span>
-                <strong>Draft PSY response</strong>
-                <small>45 min · due tonight</small>
-              </span>
-            </label>
-          </li>
-          <li>
-            <label>
-              <input type="checkbox">
-              <span class="check"></span>
-              <span>
-                <strong>Review midterm notes</strong>
-                <small>30 min · planned for 4:00</small>
-              </span>
-            </label>
-          </li>
-        </ul>
-        <p class="plan-break">
-          <img src="assets/break-icon.svg" width="17" height="17" alt="">
-          You have room for a short break at 5:00.
-        </p>
-        <p class="demo-note">This demo uses the “today’s plan” preview from the Locked landing design. No separate planner screens were in the Figma file.</p>
-      </article>
-    </section>
+      <button class="app-add-btn" type="button" data-open-item>＋ Add Task</button>
+      <nav class="app-nav" aria-label="Planner">
+        <button type="button" class="is-active" data-view="today">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="2.5" y="3.5" width="11" height="10" rx="2" stroke="currentColor"/><path d="M2.5 6.5h11M6 2.5v2M10 2.5v2" stroke="currentColor"/></svg>
+          Today
+        </button>
+        <button type="button" data-view="calendar">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="2.5" y="3.5" width="11" height="10" rx="2" stroke="currentColor"/><path d="M2.5 6.5h11" stroke="currentColor"/></svg>
+          Calendar
+        </button>
+        <button type="button" data-view="tasks">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 4h10M3 8h10M3 12h7" stroke="currentColor" stroke-linecap="round"/></svg>
+          Tasks
+        </button>
+        <button type="button" data-view="files">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 2.5h5l3.5 3.5V13.5H4V2.5Z" stroke="currentColor"/><path d="M9 2.5V6h3.5" stroke="currentColor"/></svg>
+          Files &amp; Syllabi
+        </button>
+        <button type="button" data-view="checkin">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="5.5" stroke="currentColor"/><path d="M8 5v3.2L10 10" stroke="currentColor" stroke-linecap="round"/></svg>
+          Check-in
+        </button>
+        <button type="button" data-view="integrations">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M6.5 3.5 3.5 6.5 6.5 9.5M9.5 6.5h3M9.5 12.5l3-3-3-3" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Integrations
+          <span class="nav-dot" aria-label="Attention"></span>
+        </button>
+        <button type="button" data-view="feedback">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3.5 3.5h9v7h-3l-2 2-2-2h-2v-7Z" stroke="currentColor" stroke-linejoin="round"/></svg>
+          Pilot Feedback
+        </button>
+        <button type="button" data-view="settings">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="2.2" stroke="currentColor"/><path d="M8 2.5v1.3M8 12.2v1.3M2.5 8h1.3M12.2 8h1.3M4.1 4.1l.9.9M11 11l.9.9M11.9 4.1l-.9.9M5 11l-.9.9" stroke="currentColor" stroke-linecap="round"/></svg>
+          Settings
+        </button>
+      </nav>
+      <a class="app-back" href="#home" data-close-demo>← Back to home</a>
+    </aside>
+    <div class="app-main" id="app-main"></div>
   </div>
+
+  <div class="modal item-modal" id="item-modal" hidden>
+    <div class="modal-backdrop" data-close-item></div>
+    <form class="item-card" id="item-form" autocomplete="off">
+      <header class="item-card-head">
+        <div>
+          <p class="app-eyebrow" id="item-eyebrow">New item</p>
+          <h2 id="item-heading">Add a task or event</h2>
+        </div>
+        <button class="icon-close" type="button" data-close-item aria-label="Close">×</button>
+      </header>
+      <label class="field field--full">
+        <span>Title</span>
+        <input id="item-title" name="title" type="text" placeholder="What needs to get done?" required>
+      </label>
+      <div class="field-row">
+        <label class="field">
+          <span>Course</span>
+          <input id="item-course" name="course" type="text" placeholder="e.g. PSY 110">
+        </label>
+        <label class="field">
+          <span>Type</span>
+          <select id="item-type" name="type">
+            <option value="Event">Event</option>
+            <option value="Assignment">Assignment</option>
+            <option value="Exam">Exam</option>
+            <option value="Quiz">Quiz</option>
+            <option value="Task">Task</option>
+          </select>
+        </label>
+      </div>
+      <div class="field-row">
+        <label class="field">
+          <span>Due date &amp; time</span>
+          <input id="item-due" name="due" type="datetime-local">
+        </label>
+        <label class="field">
+          <span>Planned start</span>
+          <input id="item-start" name="plannedStart" type="datetime-local">
+        </label>
+      </div>
+      <div class="field-row">
+        <label class="field">
+          <span>Priority</span>
+          <select id="item-priority" name="priority">
+            <option>Low</option>
+            <option selected>Medium</option>
+            <option>High</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Estimated minutes</span>
+          <input id="item-minutes" name="minutes" type="number" min="0" step="5" value="30">
+        </label>
+      </div>
+      <label class="field field--full">
+        <span>Notes</span>
+        <textarea id="item-notes" name="notes" rows="3" placeholder="Add context or a helpful reminder..."></textarea>
+      </label>
+      <div class="field field--full">
+        <span>Steps</span>
+        <div class="step-add">
+          <input id="item-step" type="text" placeholder="Add a step">
+          <button type="button" id="item-step-add">Add</button>
+        </div>
+        <ul class="step-list" id="item-steps"></ul>
+      </div>
+      <footer class="item-card-foot">
+        <button type="button" class="text-btn-dark" id="item-delete" hidden>Delete</button>
+        <span class="item-foot-spacer"></span>
+        <button type="button" class="text-btn-dark" data-close-item>Cancel</button>
+        <button type="submit" class="btn btn--forest" id="item-save" disabled>Save item</button>
+      </footer>
+    </form>
+  </div>
+
+  <input id="ics-file" type="file" accept=".ics,text/calendar" hidden>
+  <input id="pdf-file" type="file" accept="application/pdf,.pdf" hidden>
 
   <div class="modal" id="canvas-modal" hidden>
     <div class="modal-backdrop" data-close-canvas></div>

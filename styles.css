@@ -774,13 +774,14 @@ a {
   margin: 55px auto 0;
   width: 1150px;
   max-width: 1150px;
-  height: 590px;
-  min-height: 590px;
-  background: #fff;
-  border-radius: 18px;
-  box-shadow: 0 12px 38px rgba(16, 40, 95, 0.05);
+  min-height: 640px;
+  height: auto;
+  background: #121212;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  box-shadow: 0 12px 38px rgba(16, 40, 95, 0.08);
   display: grid;
-  grid-template-columns: 270px 880px;
+  grid-template-columns: 270px 1fr;
   overflow: hidden;
 }
 
@@ -991,11 +992,10 @@ a {
 @media (min-width: 1512px) {
   .page {
     width: 1512px;
-    height: 3160px;
     min-height: 3160px;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow: visible;
   }
 
   .hero {
@@ -1015,7 +1015,7 @@ a {
   }
 
   .about {
-    flex: 1 1 auto;
+    flex: 0 0 auto;
     min-height: 1093px;
   }
 
