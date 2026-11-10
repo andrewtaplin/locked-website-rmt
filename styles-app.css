@@ -1467,3 +1467,25 @@ code, .code-chip {
     min-height: 72px;
   }
 }
+
+.app-error {
+  max-width: 560px;
+  padding: 28px 8px;
+  color: #d5ddd9;
+}
+
+.app-error h1 {
+  font-family: var(--serif);
+  font-size: 34px;
+  line-height: 1.15;
+  color: #e6e9ff;
+  margin-bottom: 12px;
+}
+
+.app-error p {
+  margin-bottom: 12px;
+}
+
+.app-error .btn {
+  margin-top: 8px;
+}

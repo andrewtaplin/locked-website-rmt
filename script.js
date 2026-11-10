@@ -7,30 +7,156 @@ const LOCKED_CONFIG = {
   },
 };
 
+const STORE_VERSION = 2;
+const STORE_PREFIX = "locked:v" + STORE_VERSION + ":";
 const KEYS = {
-  items: "locked-items",
-  files: "locked-files",
-  checkins: "locked-checkins",
-  settings: "locked-settings",
-  issues: "locked-issues",
-  uids: "locked-ics-uids",
-  seeded: "locked-seed-v1",
+  items: STORE_PREFIX + "items",
+  files: STORE_PREFIX + "files",
+  checkins: STORE_PREFIX + "checkins",
+  settings: STORE_PREFIX + "settings",
+  issues: STORE_PREFIX + "issues",
+  uids: STORE_PREFIX + "uids",
+  seeded: STORE_PREFIX + "seeded",
+};
+
+const LEGACY_KEYS = {
+  items: ["locked-items", "lockedItems", "locked_items", "locked-tasks"],
+  files: ["locked-files"],
+  checkins: ["locked-checkins"],
+  settings: ["locked-settings"],
+  issues: ["locked-issues"],
+  uids: ["locked-ics-uids"],
+  seeded: ["locked-seed-v1"],
 };
 
 const COURSES = ["PSY 110", "MKT 201", "STA 202"];
 const SOURCE_CLASS = { Canvas: "is-canvas", Syllabus: "is-syllabus", Manual: "is-manual" };
 
-function load(key, fallback) {
+function rawGet(key) {
   try {
-    const raw = localStorage.getItem(key);
-    return raw == null ? fallback : JSON.parse(raw);
+    return localStorage.getItem(key);
   } catch {
-    return fallback;
+    return null;
   }
 }
 
+function rawRemove(key) {
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    /* ignore */
+  }
+}
+
+function loadRaw(key) {
+  try {
+    const raw = rawGet(key);
+    if (raw == null || raw === "") return undefined;
+    return JSON.parse(raw);
+  } catch {
+    return undefined;
+  }
+}
+
+function load(key, fallback) {
+  const value = loadRaw(key);
+  return value === undefined ? fallback : value;
+}
+
 function save(key, value) {
-  localStorage.setItem(key, JSON.stringify(value));
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (err) {
+    console.warn("Locked could not save data", key, err);
+  }
+}
+
+function coerceList(value, nestedKeys) {
+  if (Array.isArray(value)) return value;
+  if (value && typeof value === "object") {
+    const keys = nestedKeys || ["items", "tasks", "files", "uids", "issues", "data"];
+    for (const key of keys) {
+      if (Array.isArray(value[key])) return value[key];
+    }
+  }
+  return null;
+}
+
+function coerceItems(value) {
+  return coerceList(value, ["items", "tasks", "data", "events"]);
+}
+
+function coerceRecord(value) {
+  if (!value) return {};
+  if (Array.isArray(value)) {
+    const out = {};
+    value.forEach((row) => {
+      if (!row || typeof row !== "object") return;
+      const key = row.date || row.day || todayKey();
+      out[key] = row;
+    });
+    return out;
+  }
+  if (typeof value === "object") return value;
+  return {};
+}
+
+function normalizeDue(value) {
+  if (!value) return "";
+  const date = parseLocal(value);
+  return date ? toLocalInput(date) : "";
+}
+
+function normalizeItem(raw, index) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const title = String(raw.title || raw.name || raw.summary || "").trim();
+  const due = normalizeDue(raw.due || raw.deadline || raw.dueAt || raw.date || raw.dtstart || "");
+  if (!title && !due && raw.id == null && !raw.uid) return null;
+  return {
+    id: String(raw.id || raw.uid || "migrated-" + index + "-" + Math.random().toString(16).slice(2)),
+    uid: raw.uid || undefined,
+    title: title || "Untitled",
+    course: String(raw.course || raw.class || raw.courseCode || "").trim(),
+    type: raw.type || "Task",
+    due,
+    plannedStart: normalizeDue(raw.plannedStart || raw.start || ""),
+    priority: raw.priority || "Medium",
+    minutes: Number(raw.minutes || raw.estimatedMinutes || 0) || 0,
+    notes: raw.notes || "",
+    steps: Array.isArray(raw.steps) ? raw.steps.map(String) : [],
+    source: raw.source || "Manual",
+    completed: Boolean(raw.completed || raw.done),
+  };
+}
+
+function firstLegacyValue(names) {
+  for (const name of names) {
+    if (rawGet(name) != null) return loadRaw(name);
+  }
+  return undefined;
+}
+
+function migrateLegacyStorage() {
+  try {
+    if (rawGet(KEYS.items) != null || rawGet(KEYS.seeded) != null) return;
+    const hasLegacy = Object.values(LEGACY_KEYS).some((names) => names.some((name) => rawGet(name) != null));
+    if (!hasLegacy) return;
+    const items = (coerceItems(firstLegacyValue(LEGACY_KEYS.items)) || []).map(normalizeItem).filter(Boolean);
+    if (items.length) save(KEYS.items, items);
+    const files = coerceList(firstLegacyValue(LEGACY_KEYS.files), ["files", "items", "data"]);
+    if (files) save(KEYS.files, files.filter((file) => file && typeof file === "object"));
+    const checkins = firstLegacyValue(LEGACY_KEYS.checkins);
+    if (checkins !== undefined) save(KEYS.checkins, coerceRecord(checkins));
+    const settings = firstLegacyValue(LEGACY_KEYS.settings);
+    if (settings && typeof settings === "object" && !Array.isArray(settings)) save(KEYS.settings, settings);
+    const issues = coerceList(firstLegacyValue(LEGACY_KEYS.issues), ["issues", "items", "data"]);
+    if (issues) save(KEYS.issues, issues.filter((issue) => issue && typeof issue === "object"));
+    const uids = coerceList(firstLegacyValue(LEGACY_KEYS.uids), ["uids", "items", "data"]);
+    if (uids) save(KEYS.uids, uids.map(String));
+    if (items.length) save(KEYS.seeded, true);
+  } catch (err) {
+    console.warn("Locked skipped unreadable planner data", err);
+  }
 }
 
 function seedItems() {
@@ -42,19 +168,30 @@ function seedItems() {
 }
 
 function ensureSeed() {
-  if (load(KEYS.seeded, false)) return;
-  const existing = load(KEYS.items, null);
-  if (!existing || existing.length === 0) save(KEYS.items, seedItems());
-  const uids = load(KEYS.uids, []);
-  seedItems().forEach((item) => {
-    if (item.uid && !uids.includes(item.uid)) uids.push(item.uid);
-  });
-  save(KEYS.uids, uids);
-  save(KEYS.seeded, true);
+  try {
+    migrateLegacyStorage();
+    const existing = getItems();
+    if (existing.length === 0) save(KEYS.items, seedItems());
+    const uids = getUids();
+    seedItems().forEach((item) => {
+      if (item.uid && !uids.includes(item.uid)) uids.push(item.uid);
+    });
+    save(KEYS.uids, uids);
+    save(KEYS.seeded, true);
+  } catch (err) {
+    console.warn("Locked could not seed demo data", err);
+    try {
+      if (!getItems().length) save(KEYS.items, seedItems());
+      save(KEYS.seeded, true);
+    } catch {
+      /* ignore */
+    }
+  }
 }
 
 function resetDemo() {
-  Object.values(KEYS).forEach((key) => localStorage.removeItem(key));
+  Object.values(KEYS).forEach(rawRemove);
+  Object.values(LEGACY_KEYS).forEach((names) => names.forEach(rawRemove));
   save(KEYS.items, seedItems());
   save(KEYS.uids, seedItems().map((item) => item.uid));
   save(KEYS.settings, { focusWindow: "Afternoon", notifications: "Gentle" });
@@ -65,15 +202,61 @@ function resetDemo() {
 }
 
 function getItems() {
-  return load(KEYS.items, []);
+  try {
+    return (coerceItems(loadRaw(KEYS.items)) || []).map(normalizeItem).filter(Boolean);
+  } catch (err) {
+    console.warn("Locked ignored unreadable items", err);
+    return [];
+  }
 }
 
 function setItems(items) {
-  save(KEYS.items, items);
+  save(KEYS.items, Array.isArray(items) ? items : []);
+}
+
+function getFiles() {
+  try {
+    return (coerceList(loadRaw(KEYS.files), ["files", "items", "data"]) || []).filter((file) => file && typeof file === "object");
+  } catch (err) {
+    console.warn("Locked ignored unreadable files", err);
+    return [];
+  }
+}
+
+function getCheckins() {
+  try {
+    return coerceRecord(loadRaw(KEYS.checkins));
+  } catch (err) {
+    console.warn("Locked ignored unreadable check-ins", err);
+    return {};
+  }
 }
 
 function getSettings() {
-  return Object.assign({ focusWindow: "Afternoon", notifications: "Gentle" }, load(KEYS.settings, {}));
+  try {
+    const value = loadRaw(KEYS.settings);
+    const base = { focusWindow: "Afternoon", notifications: "Gentle" };
+    if (!value || typeof value !== "object" || Array.isArray(value)) return base;
+    return Object.assign(base, value);
+  } catch {
+    return { focusWindow: "Afternoon", notifications: "Gentle" };
+  }
+}
+
+function getUids() {
+  try {
+    return (coerceList(loadRaw(KEYS.uids), ["uids", "items", "data"]) || []).map(String);
+  } catch {
+    return [];
+  }
+}
+
+function getIssues() {
+  try {
+    return (coerceList(loadRaw(KEYS.issues), ["issues", "items", "data"]) || []).filter((issue) => issue && typeof issue === "object");
+  } catch {
+    return [];
+  }
 }
 
 function pad(n) {
@@ -81,12 +264,29 @@ function pad(n) {
 }
 
 function parseLocal(s) {
-  if (!s) return null;
-  const [date, time = "00:00"] = String(s).split("T");
-  const [y, m, d] = date.split("-").map(Number);
-  const [hh, mm] = time.split(":").map(Number);
-  if (!y || !m || !d) return null;
-  return new Date(y, m - 1, d, hh || 0, mm || 0);
+  if (s == null || s === "") return null;
+  if (s instanceof Date) return Number.isNaN(s.getTime()) ? null : s;
+  if (typeof s === "number") {
+    const millis = new Date(s);
+    return Number.isNaN(millis.getTime()) ? null : millis;
+  }
+  const str = String(s).trim();
+  if (!str) return null;
+  const hasZone = /[zZ]|[+-]\d{2}:?\d{2}$/.test(str);
+  const localParts = str.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?)?$/);
+  if (localParts && !hasZone) {
+    const date = new Date(
+      Number(localParts[1]),
+      Number(localParts[2]) - 1,
+      Number(localParts[3]),
+      Number(localParts[4] || 0),
+      Number(localParts[5] || 0),
+      Number(localParts[6] || 0)
+    );
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+  const parsed = new Date(str);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
 function toLocalInput(d) {
@@ -311,6 +511,7 @@ const navLinks = document.getElementById("main-nav");
 const appMain = document.getElementById("app-main");
 
 function renderAbout(index) {
+  if (!aboutContent) return;
   const section = ABOUT_SECTIONS[index] || ABOUT_SECTIONS[0];
   aboutContent.innerHTML = `
     <p class="about-kicker">${section.kicker}</p>
@@ -366,12 +567,12 @@ function openCanvas() {
 }
 
 function todayMood() {
-  const all = load(KEYS.checkins, {});
+  const all = getCheckins();
   return (all[todayKey()] || {}).todayQuick || "";
 }
 
 function saveTodayMood(value) {
-  const all = load(KEYS.checkins, {});
+  const all = getCheckins();
   const key = todayKey();
   all[key] = Object.assign({}, all[key], { todayQuick: value, date: key });
   if (value && !all[key].mood) all[key].mood = value === "Low" || value === "Okay" || value === "Good" ? value : all[key].mood;
@@ -380,7 +581,7 @@ function saveTodayMood(value) {
 }
 
 function renderApp() {
-  if (!appMain || demoPage.hidden) return;
+  if (!appMain || !demoPage || demoPage.hidden) return;
   const views = {
     today: renderToday,
     calendar: renderCalendar,
@@ -391,7 +592,18 @@ function renderApp() {
     feedback: renderFeedback,
     settings: renderSettings,
   };
-  (views[currentView] || renderToday)();
+  try {
+    (views[currentView] || renderToday)();
+  } catch (err) {
+    console.error("Locked failed to render", currentView, err);
+    appMain.innerHTML = `
+      <div class="app-error">
+        <h1>This view could not be loaded.</h1>
+        <p>${escapeHtml(err && err.message ? err.message : "A planner data error stopped this screen.")}</p>
+        <p>You can reset the demo data stored in this browser and try again. This only affects your device.</p>
+        <button class="btn btn--forest" type="button" id="reset-demo">Reset demo data</button>
+      </div>`;
+  }
 }
 
 function addTaskButton(label) {
@@ -603,7 +815,7 @@ function renderTasks() {
 }
 
 function renderFiles() {
-  const files = load(KEYS.files, []);
+  const files = getFiles();
   const review = lastUploadId ? files.find((f) => f.id === lastUploadId) : null;
   const list = files.length
     ? `<div class="file-list">${files.map((file) => `
@@ -649,7 +861,7 @@ function renderFiles() {
 }
 
 function renderCheckin() {
-  const today = load(KEYS.checkins, {})[todayKey()] || {};
+  const today = getCheckins()[todayKey()] || {};
   const rows = [
     { key: "mood", title: "Mood", sub: "How are you feeling?", options: ["Low", "Okay", "Good"] },
     { key: "energy", title: "Energy", sub: "What pace feels realistic?", options: ["Low", "Okay", "Good"] },
@@ -743,7 +955,7 @@ function renderIntegrations() {
 function renderFeedback() {
   const mid = LOCKED_CONFIG.surveyLinks.midPilot;
   const end = LOCKED_CONFIG.surveyLinks.endOfPilot;
-  const issues = load(KEYS.issues, []);
+  const issues = getIssues();
   const last = issues[issues.length - 1];
   const pendingNote = `<p class="muted-note">Link coming once the protocol is approved.</p>`;
   appMain.innerHTML = `
@@ -839,8 +1051,8 @@ function renderSteps() {
 }
 
 function closeItemModal() {
-  itemModal.hidden = true;
-  document.body.style.overflow = canvasModal.hidden ? "" : "hidden";
+  if (itemModal) itemModal.hidden = true;
+  document.body.style.overflow = canvasModal && !canvasModal.hidden ? "hidden" : "";
   editingId = null;
 }
 
@@ -914,7 +1126,7 @@ function handlePdf(file) {
     course,
     date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
   };
-  const files = load(KEYS.files, []);
+  const files = getFiles();
   files.push(entry);
   save(KEYS.files, files);
   lastUploadId = entry.id;
@@ -955,7 +1167,7 @@ function parseIcsDate(params, value) {
 function parseICS(text) {
   const unfolded = text.replace(/\r\n[ \t]/g, "").replace(/\n[ \t]/g, "").replace(/\r\n/g, "\n");
   const chunks = unfolded.split(/BEGIN:VEVENT/i).slice(1);
-  const known = load(KEYS.uids, []);
+  const known = getUids();
   return chunks.map((chunk) => {
     const body = chunk.split(/END:VEVENT/i)[0];
     const get = (name) => {
@@ -998,7 +1210,7 @@ function handleIcs(file) {
 }
 
 function addSelectedIcs() {
-  const known = load(KEYS.uids, []);
+  const known = getUids();
   const items = getItems();
   pendingIcs.forEach((ev) => {
     if (!ev.selected || ev.duplicate || (ev.uid && known.includes(ev.uid))) return;
@@ -1035,8 +1247,16 @@ function routeFromHash() {
   showHome();
 }
 
-ensureSeed();
-renderAbout(0);
+try {
+  ensureSeed();
+} catch (err) {
+  console.error("Locked startup seed failed", err);
+}
+try {
+  renderAbout(0);
+} catch (err) {
+  console.error("Locked could not render About", err);
+}
 
 aboutButtons.forEach((button) => {
   button.addEventListener("click", () => {
@@ -1166,7 +1386,7 @@ document.addEventListener("click", (event) => {
   }
   const rmFile = event.target.closest("[data-remove-file]");
   if (rmFile) {
-    const files = load(KEYS.files, []).filter((f) => f.id !== rmFile.dataset.removeFile);
+    const files = getFiles().filter((f) => f.id !== rmFile.dataset.removeFile);
     save(KEYS.files, files);
     if (lastUploadId === rmFile.dataset.removeFile) lastUploadId = null;
     renderApp();
@@ -1179,7 +1399,7 @@ document.addEventListener("click", (event) => {
   }
   const checkin = event.target.closest("[data-checkin-key]");
   if (checkin) {
-    const all = load(KEYS.checkins, {});
+    const all = getCheckins();
     const key = todayKey();
     all[key] = Object.assign({}, all[key], { date: key, [checkin.dataset.checkinKey]: checkin.dataset.checkinValue });
     if (checkin.dataset.checkinKey === "mood") all[key].todayQuick = checkin.dataset.checkinValue;
@@ -1245,7 +1465,7 @@ document.addEventListener("submit", (event) => {
   if (event.target.id !== "issue-form") return;
   event.preventDefault();
   const form = event.target;
-  const issues = load(KEYS.issues, []);
+  const issues = getIssues();
   issues.push({
     detail: form.detail.value.trim(),
     who: form.who.value.trim(),
@@ -1284,5 +1504,15 @@ document.addEventListener("drop", (event) => {
   handlePdf(file);
 });
 
-window.addEventListener("hashchange", routeFromHash);
-routeFromHash();
+window.addEventListener("hashchange", () => {
+  try {
+    routeFromHash();
+  } catch (err) {
+    console.error("Locked could not open this page", err);
+  }
+});
+try {
+  routeFromHash();
+} catch (err) {
+  console.error("Locked could not open this page", err);
+}
